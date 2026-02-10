@@ -1,0 +1,11 @@
+global using Xunit;
+global using Moq;
+global using FluentAssertions;
+global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Options;
+global using System.IO.Abstractions;
+global using System.IO.Abstractions.TestingHelpers;
+global using FolderToApi.Service.Configuration;
+global using FolderToApi.Service.Models;
+global using FolderToApi.Service.Services;
+global using FolderToApi.Service.Data;
