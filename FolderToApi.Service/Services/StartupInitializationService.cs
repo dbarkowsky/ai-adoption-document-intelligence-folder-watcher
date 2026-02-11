@@ -5,11 +5,12 @@ namespace FolderToApi.Service.Services;
 /// <summary>
 /// Hosted service that performs initialization tasks on startup
 /// </summary>
-public class StartupInitializationService : IHostedService
+public class StartupInitializationService : BackgroundService
 {
     private readonly IFolderStructureService _folderStructureService;
     private readonly IDatabaseInitializer _databaseInitializer;
     private readonly IJobRepository _jobRepository;
+    private readonly IStartupInitializationState _startupState;
     private readonly ILogger<StartupInitializationService> _logger;
     private readonly IHostApplicationLifetime _lifetime;
 
@@ -17,17 +18,19 @@ public class StartupInitializationService : IHostedService
         IFolderStructureService folderStructureService,
         IDatabaseInitializer databaseInitializer,
         IJobRepository jobRepository,
+        IStartupInitializationState startupState,
         ILogger<StartupInitializationService> logger,
         IHostApplicationLifetime lifetime)
     {
         _folderStructureService = folderStructureService;
         _databaseInitializer = databaseInitializer;
         _jobRepository = jobRepository;
+        _startupState = startupState;
         _logger = logger;
         _lifetime = lifetime;
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Running startup initialization...");
 
@@ -39,6 +42,7 @@ public class StartupInitializationService : IHostedService
             if (!folderInitSuccess)
             {
                 _logger.LogCritical("Folder structure initialization failed. Service cannot start.");
+                _startupState.MarkFailed();
                 _lifetime.StopApplication();
                 return;
             }
@@ -49,6 +53,7 @@ public class StartupInitializationService : IHostedService
             if (!dbInitSuccess)
             {
                 _logger.LogCritical("Database initialization failed. Service cannot start.");
+                _startupState.MarkFailed();
                 _lifetime.StopApplication();
                 return;
             }
@@ -69,16 +74,13 @@ public class StartupInitializationService : IHostedService
             }
 
             _logger.LogInformation("Startup initialization completed successfully");
+            _startupState.MarkInitialized();
         }
         catch (Exception ex)
         {
             _logger.LogCritical(ex, "Startup initialization failed with exception. Service cannot start.");
+            _startupState.MarkFailed();
             _lifetime.StopApplication();
         }
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
     }
 }

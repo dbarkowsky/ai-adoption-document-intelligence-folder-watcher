@@ -32,6 +32,16 @@ public class ApiClientOptions
     [Required]
     public string ApiKeyHeaderName { get; set; } = "X-API-Key";
 
+    /// <summary>
+    /// Model identifier sent in upload payload as model_id.
+    /// </summary>
+    public string ModelId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Workflow identifier sent in upload payload as workflow_id.
+    /// </summary>
+    public string WorkflowId { get; set; } = string.Empty;
+
     [Range(1, 300, ErrorMessage = "ConnectTimeoutSeconds must be between 1 and 300")]
     public int ConnectTimeoutSeconds { get; set; } = 10;
 

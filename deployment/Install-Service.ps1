@@ -154,7 +154,7 @@ function Validate-ConfigurationFile {
             throw "Configuration validation failed:`n" + ($errors -join "`n")
         }
 
-        Write-ColorOutput "✓ Configuration file is valid" "Green"
+        Write-ColorOutput "[OK] Configuration file is valid" "Green"
         return $config
     }
     catch {
@@ -199,7 +199,7 @@ function Create-RequiredDirectories {
         }
     }
 
-    Write-ColorOutput "✓ Required directories created" "Green"
+    Write-ColorOutput "[OK] Required directories created" "Green"
 }
 
 function Set-DirectoryPermissions {
@@ -256,14 +256,14 @@ try {
     if (-not (Test-Path $configPath)) {
         throw "Configuration file not found: $configPath"
     }
-    Write-ColorOutput "✓ Source files found" "Green"
+    Write-ColorOutput "[OK] Source files found" "Green"
 
     # Validate configuration
     $config = Validate-ConfigurationFile -ConfigPath $configPath
 
     # Exit if validation only
     if ($ValidateOnly) {
-        Write-ColorOutput "`n✓ Validation completed successfully. Service was NOT installed." "Green"
+        Write-ColorOutput "`n[OK] Validation completed successfully. Service was NOT installed." "Green"
         return
     }
 
@@ -277,7 +277,7 @@ try {
             Start-Sleep -Seconds 2
             sc.exe delete $ServiceName | Out-Null
             Start-Sleep -Seconds 2
-            Write-ColorOutput "✓ Existing service removed" "Green"
+            Write-ColorOutput "[OK] Existing service removed" "Green"
         }
         else {
             Write-ColorOutput "Installation cancelled." "Yellow"
@@ -290,19 +290,33 @@ try {
     if (-not (Test-Path $InstallPath)) {
         New-Item -Path $InstallPath -ItemType Directory -Force | Out-Null
     }
-    Write-ColorOutput "✓ Installation directory created: $InstallPath" "Green"
+    Write-ColorOutput "[OK] Installation directory created: $InstallPath" "Green"
 
     # Copy files
     Write-ColorOutput "Copying service files..." "Cyan"
-    $destinationExe = Join-Path $InstallPath "FolderToApi.Service.exe"
-    Copy-Item -Path $executablePath -Destination $destinationExe -Force
 
-    # Copy configuration files
-    Get-ChildItem -Path $SourcePath -Filter "appsettings*.json" | ForEach-Object {
-        Copy-Item -Path $_.FullName -Destination $InstallPath -Force
-        Write-ColorOutput "  Copied: $($_.Name)" "Gray"
+    # Copy entire publish output. This supports both:
+    # - single-file publish (exe + config files)
+    # - multi-file publish (exe + dll/runtime/native files + config files)
+    Get-ChildItem -Path $SourcePath -Force | ForEach-Object {
+        $destinationPath = Join-Path $InstallPath $_.Name
+
+        if ($_.PSIsContainer) {
+            Copy-Item -Path $_.FullName -Destination $destinationPath -Recurse -Force
+            Write-ColorOutput "  Copied directory: $($_.Name)" "Gray"
+        }
+        else {
+            Copy-Item -Path $_.FullName -Destination $destinationPath -Force
+            Write-ColorOutput "  Copied file: $($_.Name)" "Gray"
+        }
     }
-    Write-ColorOutput "✓ Service files copied" "Green"
+
+    $destinationExe = Join-Path $InstallPath "FolderToApi.Service.exe"
+    if (-not (Test-Path $destinationExe)) {
+        throw "Executable not found after copy: $destinationExe"
+    }
+
+    Write-ColorOutput "[OK] Service files copied" "Green"
 
     # Determine service account
     $serviceAccountParam = ""
@@ -356,13 +370,13 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to create service. Exit code: $LASTEXITCODE"
     }
-    Write-ColorOutput "✓ Service created: $ServiceName" "Green"
+    Write-ColorOutput "[OK] Service created: $ServiceName" "Green"
 
     # Set service display name and description
     Write-ColorOutput "Configuring service properties..." "Cyan"
     sc.exe config $ServiceName DisplayName= "$ServiceDisplayName" | Out-Null
     sc.exe description $ServiceName "$ServiceDescription" | Out-Null
-    Write-ColorOutput "✓ Service properties configured" "Green"
+    Write-ColorOutput "[OK] Service properties configured" "Green"
 
     # Configure service recovery options
     Write-ColorOutput "Configuring service recovery options..." "Cyan"
@@ -373,13 +387,13 @@ try {
         Write-ColorOutput "  WARNING: Failed to configure recovery options" "Yellow"
     }
     else {
-        Write-ColorOutput "✓ Recovery options configured (restart on failure)" "Green"
+        Write-ColorOutput "[OK] Recovery options configured (restart on failure)" "Green"
     }
 
     # Set service to delayed auto-start (reduces startup time impact)
     Write-ColorOutput "Setting delayed auto-start..." "Cyan"
     sc.exe config $ServiceName start= delayed-auto | Out-Null
-    Write-ColorOutput "✓ Delayed auto-start configured" "Green"
+    Write-ColorOutput "[OK] Delayed auto-start configured" "Green"
 
     # Start the service
     Write-ColorOutput "Starting service..." "Cyan"
@@ -389,7 +403,7 @@ try {
     # Verify service is running
     $service = Get-Service -Name $ServiceName
     if ($service.Status -eq "Running") {
-        Write-ColorOutput "✓ Service started successfully" "Green"
+        Write-ColorOutput "[OK] Service started successfully" "Green"
     }
     else {
         Write-ColorOutput "WARNING: Service status is $($service.Status)" "Yellow"
@@ -405,7 +419,7 @@ try {
     Write-ColorOutput "Service Account:     $serviceAccountParam" "White"
     Write-ColorOutput "Status:              $($service.Status)" "White"
     Write-ColorOutput "Startup Type:        Automatic (Delayed)" "White"
-    Write-ColorOutput "`n✓ Installation completed successfully!" "Green"
+    Write-ColorOutput "`n[OK] Installation completed successfully!" "Green"
     Write-ColorOutput "`nNext steps:" "Cyan"
     Write-ColorOutput "1. Verify configuration in: $InstallPath\appsettings.json" "White"
     Write-ColorOutput "2. Configure RootPath, API endpoint, and API key" "White"
@@ -420,9 +434,9 @@ try {
 
 }
 catch {
-    Write-ColorOutput "`n✗ Installation failed: $_" "Red"
-    Write-ColorOutput "`nStack trace:" "Red"
-    Write-ColorOutput $_.ScriptStackTrace "Red"
+    Write-ColorOutput ("Installation failed: " + $_) -Color Red
+    Write-ColorOutput "Stack trace:" -Color Red
+    Write-ColorOutput $_.ScriptStackTrace -Color Red
     exit 1
 }
 

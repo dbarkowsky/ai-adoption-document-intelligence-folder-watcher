@@ -66,11 +66,19 @@ Uninstalls the FolderToApiService Windows Service.
 
 ### 1. Publish the Application
 
+**On Windows (PowerShell):**
 ```powershell
 # From the repository root
 cd deployment
 .\Publish-Service.ps1
 ```
+
+**On Linux or macOS (no PowerShell):** Use the shell script instead:
+```bash
+cd deployment
+./publish-service.sh
+```
+Or from the repo root: `./deployment/publish-service.sh`
 
 ### 2. Copy to Target Server
 

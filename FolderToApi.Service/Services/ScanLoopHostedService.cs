@@ -15,6 +15,7 @@ public class ScanLoopHostedService : BackgroundService
     private readonly ICompletenessChecker _completenessChecker;
     private readonly IFileClaimer _fileClaimer;
     private readonly IJobRepository _jobRepository;
+    private readonly IStartupInitializationState _startupState;
     private readonly ILogger<ScanLoopHostedService> _logger;
     private readonly TimeSpan _scanInterval;
 
@@ -24,6 +25,7 @@ public class ScanLoopHostedService : BackgroundService
         ICompletenessChecker completenessChecker,
         IFileClaimer fileClaimer,
         IJobRepository jobRepository,
+        IStartupInitializationState startupState,
         ILogger<ScanLoopHostedService> logger)
     {
         _options = options.Value;
@@ -31,12 +33,21 @@ public class ScanLoopHostedService : BackgroundService
         _completenessChecker = completenessChecker;
         _fileClaimer = fileClaimer;
         _jobRepository = jobRepository;
+        _startupState = startupState;
         _logger = logger;
         _scanInterval = TimeSpan.FromSeconds(_options.ScanIntervalSeconds);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        _logger.LogInformation("Scan loop waiting for startup initialization...");
+        var initialized = await _startupState.WaitForInitializationAsync(stoppingToken);
+        if (!initialized)
+        {
+            _logger.LogCritical("Scan loop not starting because startup initialization failed.");
+            return;
+        }
+
         _logger.LogInformation("Scan loop starting with interval: {Interval} seconds", _options.ScanIntervalSeconds);
 
         // Wait a bit before starting first scan to let the system settle

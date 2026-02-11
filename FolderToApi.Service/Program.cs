@@ -144,6 +144,7 @@ builder.Services.AddHttpClient("RemoteApi", (serviceProvider, client) =>
 builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddSingleton<IFileSystem>(_ => new System.IO.Abstractions.FileSystem());
 builder.Services.AddSingleton<IApiKeyProvider, ApiKeyProvider>();
+builder.Services.AddSingleton<IStartupInitializationState, StartupInitializationState>();
 builder.Services.AddSingleton<IFolderStructureService, FolderStructureService>();
 builder.Services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();
 builder.Services.AddSingleton<IJobRepository, JobRepository>();

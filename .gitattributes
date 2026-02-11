@@ -1,0 +1,2 @@
+# PowerShell scripts: use CRLF on Windows so the parser does not fail
+*.ps1 text eol=crlf

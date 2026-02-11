@@ -1,5 +1,8 @@
 using System.Net;
 using System.Net.Http;
+using System.Text.Json;
+using FolderToApi.Service.Configuration;
+using Microsoft.Extensions.Options;
 using Moq.Protected;
 
 namespace FolderToApi.Service.Tests.Services;
@@ -16,7 +19,7 @@ public class ApiClientTests : IDisposable
         var mockFactory = CreateMockHttpClientFactory(mockHandler);
 
         var mockLogger = new Mock<ILogger<ApiClient>>();
-        var client = new ApiClient(mockFactory.Object, mockLogger.Object);
+        var client = new ApiClient(mockFactory.Object, mockLogger.Object, CreateApiOptions().Object);
 
         var tempFile = CreateTempFile("test content");
         var job = CreateTestJob(tempFile);
@@ -43,7 +46,7 @@ public class ApiClientTests : IDisposable
         var mockFactory = CreateMockHttpClientFactory(mockHandler);
 
         var mockLogger = new Mock<ILogger<ApiClient>>();
-        var client = new ApiClient(mockFactory.Object, mockLogger.Object);
+        var client = new ApiClient(mockFactory.Object, mockLogger.Object, CreateApiOptions().Object);
 
         var tempFile = CreateTempFile("test content");
         var job = CreateTestJob(tempFile);
@@ -70,7 +73,7 @@ public class ApiClientTests : IDisposable
         var mockFactory = CreateMockHttpClientFactory(mockHandler);
 
         var mockLogger = new Mock<ILogger<ApiClient>>();
-        var client = new ApiClient(mockFactory.Object, mockLogger.Object);
+        var client = new ApiClient(mockFactory.Object, mockLogger.Object, CreateApiOptions().Object);
 
         var tempFile = CreateTempFile("test content");
         var job = CreateTestJob(tempFile);
@@ -98,7 +101,7 @@ public class ApiClientTests : IDisposable
         var mockFactory = CreateMockHttpClientFactory(mockHandler);
 
         var mockLogger = new Mock<ILogger<ApiClient>>();
-        var client = new ApiClient(mockFactory.Object, mockLogger.Object);
+        var client = new ApiClient(mockFactory.Object, mockLogger.Object, CreateApiOptions().Object);
 
         var tempFile = CreateTempFile("test content");
         var job = CreateTestJob(tempFile);
@@ -126,7 +129,7 @@ public class ApiClientTests : IDisposable
         var mockFactory = CreateMockHttpClientFactory(mockHandler);
 
         var mockLogger = new Mock<ILogger<ApiClient>>();
-        var client = new ApiClient(mockFactory.Object, mockLogger.Object);
+        var client = new ApiClient(mockFactory.Object, mockLogger.Object, CreateApiOptions().Object);
 
         var tempFile = CreateTempFile("test content");
         var job = CreateTestJob(tempFile);
@@ -162,7 +165,7 @@ public class ApiClientTests : IDisposable
         var mockFactory = CreateMockHttpClientFactory(mockHandler);
 
         var mockLogger = new Mock<ILogger<ApiClient>>();
-        var client = new ApiClient(mockFactory.Object, mockLogger.Object);
+        var client = new ApiClient(mockFactory.Object, mockLogger.Object, CreateApiOptions().Object);
 
         var tempFile = CreateTempFile("test content");
         var job = CreateTestJob(tempFile);
@@ -175,7 +178,7 @@ public class ApiClientTests : IDisposable
     }
 
     [Fact]
-    public async Task UploadFileAsync_SendsMultipartFormData()
+    public async Task UploadFileAsync_SendsJsonPayload()
     {
         // Arrange
         HttpRequestMessage? capturedRequest = null;
@@ -194,7 +197,7 @@ public class ApiClientTests : IDisposable
         var mockFactory = CreateMockHttpClientFactory(mockHandler);
 
         var mockLogger = new Mock<ILogger<ApiClient>>();
-        var client = new ApiClient(mockFactory.Object, mockLogger.Object);
+        var client = new ApiClient(mockFactory.Object, mockLogger.Object, CreateApiOptions().Object);
 
         var tempFile = CreateTempFile("test content");
         var job = CreateTestJob(tempFile);
@@ -204,7 +207,8 @@ public class ApiClientTests : IDisposable
 
         // Assert
         capturedRequest.Should().NotBeNull();
-        capturedRequest!.Content.Should().BeOfType<MultipartFormDataContent>();
+        capturedRequest!.Content.Should().NotBeNull();
+        capturedRequest.Content!.Headers.ContentType!.MediaType.Should().Be("application/json");
     }
 
     [Fact]
@@ -236,7 +240,7 @@ public class ApiClientTests : IDisposable
         var mockFactory = CreateMockHttpClientFactory(mockHandler);
 
         var mockLogger = new Mock<ILogger<ApiClient>>();
-        var client = new ApiClient(mockFactory.Object, mockLogger.Object);
+        var client = new ApiClient(mockFactory.Object, mockLogger.Object, CreateApiOptions().Object);
 
         var tempFile = CreateTempFile("test content");
         var job = CreateTestJob(tempFile);
@@ -246,11 +250,16 @@ public class ApiClientTests : IDisposable
 
         // Assert
         capturedRequest.Should().NotBeNull();
-        capturedRequest!.Content.Should().BeOfType<MultipartFormDataContent>();
-
-        // Verify multipart form contains the job_id
         capturedContent.Should().NotBeNull();
-        capturedContent.Should().Contain(job.JobId);
+        using var payload = JsonDocument.Parse(capturedContent!);
+        var root = payload.RootElement;
+        root.GetProperty("original_filename").GetString().Should().Be(Path.GetFileName(tempFile));
+        root.GetProperty("title").GetString().Should().Be(Path.GetFileNameWithoutExtension(tempFile));
+        root.GetProperty("model_id").GetString().Should().Be("test-model");
+        root.GetProperty("workflow_id").GetString().Should().Be("test-workflow");
+        root.GetProperty("file_type").GetString().Should().Be("document");
+        root.GetProperty("file").GetString().Should().StartWith("data:application/pdf;base64,");
+        root.GetProperty("metadata").GetProperty("size").GetInt64().Should().Be(new FileInfo(tempFile).Length);
     }
 
     [Fact]
@@ -267,7 +276,7 @@ public class ApiClientTests : IDisposable
         var mockFactory = CreateMockHttpClientFactory(mockHandler);
 
         var mockLogger = new Mock<ILogger<ApiClient>>();
-        var client = new ApiClient(mockFactory.Object, mockLogger.Object);
+        var client = new ApiClient(mockFactory.Object, mockLogger.Object, CreateApiOptions().Object);
 
         var tempFile = CreateTempFile("test content");
         var job = CreateTestJob(tempFile);
@@ -306,6 +315,18 @@ public class ApiClientTests : IDisposable
         var mockFactory = new Mock<IHttpClientFactory>();
         mockFactory.Setup(f => f.CreateClient("RemoteApi")).Returns(httpClient);
         return mockFactory;
+    }
+
+    private Mock<IOptions<ApiClientOptions>> CreateApiOptions()
+    {
+        var options = new ApiClientOptions
+        {
+            ModelId = "test-model",
+            WorkflowId = "test-workflow"
+        };
+        var mockOptions = new Mock<IOptions<ApiClientOptions>>();
+        mockOptions.SetupGet(o => o.Value).Returns(options);
+        return mockOptions;
     }
 
     private string CreateTempFile(string content)

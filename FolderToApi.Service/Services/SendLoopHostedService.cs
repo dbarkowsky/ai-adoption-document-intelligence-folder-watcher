@@ -18,6 +18,7 @@ public class SendLoopHostedService : BackgroundService
     private readonly IRetryPolicy _retryPolicy;
     private readonly IClock _clock;
     private readonly IFolderStructureService _folderStructure;
+    private readonly IStartupInitializationState _startupState;
     private readonly ILogger<SendLoopHostedService> _logger;
     private readonly SemaphoreSlim _concurrencySemaphore;
 
@@ -28,6 +29,7 @@ public class SendLoopHostedService : BackgroundService
         IRetryPolicy retryPolicy,
         IClock clock,
         IFolderStructureService folderStructure,
+        IStartupInitializationState startupState,
         ILogger<SendLoopHostedService> logger)
     {
         _options = options.Value;
@@ -36,12 +38,21 @@ public class SendLoopHostedService : BackgroundService
         _retryPolicy = retryPolicy;
         _clock = clock;
         _folderStructure = folderStructure;
+        _startupState = startupState;
         _logger = logger;
         _concurrencySemaphore = new SemaphoreSlim(_options.MaxConcurrentSends);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        _logger.LogInformation("Send loop waiting for startup initialization...");
+        var initialized = await _startupState.WaitForInitializationAsync(stoppingToken);
+        if (!initialized)
+        {
+            _logger.LogCritical("Send loop not starting because startup initialization failed.");
+            return;
+        }
+
         _logger.LogInformation(
             "SendLoopHostedService started with MaxConcurrentSends={MaxConcurrentSends}",
             _options.MaxConcurrentSends);

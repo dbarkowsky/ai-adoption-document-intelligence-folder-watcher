@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FolderToApi.Service")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a229c30cafa58c1515e52bdebf3dbdf87e150c2d")]
 [assembly: System.Reflection.AssemblyProductAttribute("FolderToApi.Service")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FolderToApi.Service")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

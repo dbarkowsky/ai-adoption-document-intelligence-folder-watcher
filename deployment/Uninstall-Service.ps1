@@ -161,7 +161,7 @@ try {
         if ($service.Status -eq "Running") {
             try {
                 Stop-Service -Name $ServiceName -Force -ErrorAction Stop
-                Write-ColorOutput "✓ Service stopped" "Green"
+                Write-ColorOutput "[OK] Service stopped" "Green"
 
                 # Wait for service to stop completely
                 $timeout = 30
@@ -192,7 +192,7 @@ try {
         $result = sc.exe delete $ServiceName
 
         if ($LASTEXITCODE -eq 0) {
-            Write-ColorOutput "✓ Service registration removed" "Green"
+            Write-ColorOutput "[OK] Service registration removed" "Green"
         }
         else {
             Write-ColorOutput "WARNING: sc.exe delete returned exit code $LASTEXITCODE" "Yellow"
@@ -210,7 +210,7 @@ try {
         try {
             # Try to remove the directory
             Remove-Item -Path $InstallPath -Recurse -Force -ErrorAction Stop
-            Write-ColorOutput "✓ Installation files removed from: $InstallPath" "Green"
+            Write-ColorOutput "[OK] Installation files removed from: $InstallPath" "Green"
         }
         catch {
             Write-ColorOutput "WARNING: Failed to remove installation directory: $_" "Yellow"
@@ -260,7 +260,7 @@ try {
                     Write-ColorOutput "  WARNING: Failed to remove ${dir}: $_" "Yellow"
                 }
             }
-            Write-ColorOutput "✓ Data directories removed" "Green"
+            Write-ColorOutput "[OK] Data directories removed" "Green"
         }
     }
 
@@ -269,7 +269,7 @@ try {
     try {
         if ([System.Diagnostics.EventLog]::SourceExists("FolderToApiService")) {
             [System.Diagnostics.EventLog]::DeleteEventSource("FolderToApiService")
-            Write-ColorOutput "✓ Event Log source removed" "Green"
+            Write-ColorOutput "[OK] Event Log source removed" "Green"
         }
         else {
             Write-ColorOutput "Event Log source not found (may have been already removed)" "Gray"
@@ -292,13 +292,13 @@ try {
         Write-ColorOutput "To completely remove, run: .\Uninstall-Service.ps1 -RemoveFiles" "Gray"
     }
 
-    Write-ColorOutput "`n✓ Uninstallation completed successfully!" "Green"
+    Write-ColorOutput "`n[OK] Uninstallation completed successfully!" "Green"
 
 }
 catch {
-    Write-ColorOutput "`n✗ Uninstallation failed: $_" "Red"
-    Write-ColorOutput "`nStack trace:" "Red"
-    Write-ColorOutput $_.ScriptStackTrace "Red"
+    Write-ColorOutput ("Uninstallation failed: " + $_) -Color Red
+    Write-ColorOutput "Stack trace:" -Color Red
+    Write-ColorOutput $_.ScriptStackTrace -Color Red
     exit 1
 }
 

@@ -1,5 +1,9 @@
 using FolderToApi.Service.Models;
+using FolderToApi.Service.Configuration;
+using Microsoft.Extensions.Options;
 using System.Diagnostics;
+using System.Text;
+using System.Text.Json;
 
 namespace FolderToApi.Service.Services;
 
@@ -10,13 +14,16 @@ public class ApiClient : IApiClient
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<ApiClient> _logger;
+    private readonly ApiClientOptions _options;
 
     public ApiClient(
         IHttpClientFactory httpClientFactory,
-        ILogger<ApiClient> logger)
+        ILogger<ApiClient> logger,
+        IOptions<ApiClientOptions> options)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _options = options.Value;
     }
 
     public async Task<ApiUploadResult> UploadFileAsync(Job job, string filePath)
@@ -31,42 +38,36 @@ public class ApiClient : IApiClient
             // Create HTTP client
             var httpClient = _httpClientFactory.CreateClient("RemoteApi");
 
-            // Build multipart form data
-            using var multipartContent = new MultipartFormDataContent();
-
-            // Add file
             var fileInfo = new FileInfo(filePath);
-            var fileStream = File.OpenRead(filePath);
-            var streamContent = new StreamContent(fileStream);
-            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
-            multipartContent.Add(streamContent, "file", fileInfo.Name);
+            var mimeType = GetMimeType(fileInfo.Extension);
+            var fileType = GetFileType(mimeType);
+            var fileBytes = await File.ReadAllBytesAsync(filePath);
+            var base64File = Convert.ToBase64String(fileBytes);
+            var dataUrl = $"data:{mimeType};base64,{base64File}";
 
-            // Add filename
-            multipartContent.Add(new StringContent(fileInfo.Name), "filename");
-
-            // Add metadata
-            multipartContent.Add(new StringContent(job.JobId), "job_id");
-            multipartContent.Add(new StringContent(DateTime.UtcNow.ToString("O")), "timestamp");
-            multipartContent.Add(new StringContent("FolderToApiService"), "source_system");
-
-            if (job.FileSizeBytes.HasValue)
+            var payload = new
             {
-                multipartContent.Add(new StringContent(job.FileSizeBytes.Value.ToString()), "file_size_bytes");
-            }
+                file = dataUrl,
+                file_type = fileType,
+                metadata = new
+                {
+                    size = fileInfo.Length,
+                    lastModified = new DateTimeOffset(fileInfo.LastWriteTimeUtc).ToUnixTimeMilliseconds()
+                },
+                model_id = _options.ModelId,
+                original_filename = fileInfo.Name,
+                title = Path.GetFileNameWithoutExtension(fileInfo.Name),
+                workflow_id = _options.WorkflowId
+            };
+            var jsonPayload = JsonSerializer.Serialize(payload);
+            using var requestContent = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
             // Send request
             _logger.LogDebug("Sending POST request for job {JobId} to {Url}",
                 job.JobId, httpClient.BaseAddress);
 
             HttpResponseMessage response;
-            try
-            {
-                response = await httpClient.PostAsync("", multipartContent);
-            }
-            finally
-            {
-                await fileStream.DisposeAsync();
-            }
+            response = await httpClient.PostAsync("", requestContent);
 
             stopwatch.Stop();
 
@@ -166,5 +167,29 @@ public class ApiClient : IApiClient
 
         // Non-retryable: most 4xx (client errors)
         return false;
+    }
+
+    private static string GetFileType(string mimeType)
+    {
+        return mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? "image" : "document";
+    }
+
+    private static string GetMimeType(string extension)
+    {
+        return extension.ToLowerInvariant() switch
+        {
+            ".jpg" => "image/jpeg",
+            ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".bmp" => "image/bmp",
+            ".webp" => "image/webp",
+            ".tif" => "image/tiff",
+            ".tiff" => "image/tiff",
+            ".pdf" => "application/pdf",
+            ".doc" => "application/msword",
+            ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            _ => "application/octet-stream"
+        };
     }
 }
