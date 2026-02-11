@@ -53,12 +53,18 @@ Files flow through a deterministic state machine with full transactional guarant
      "FolderWatcher": {
        "RootPath": "C:\\Data\\FileDelivery"
      },
-     "ApiClient": {
-       "EndpointUrl": "https://api.example.com/upload",
-       "ApiKey": "your-api-key-here"
-     }
+       "ApiClient": {
+          "EndpointUrl": "https://api.example.com/upload",
+          "ApiKey": "your-api-key-here",
+          "ModelId": "",
+          "WorkflowId": ""
+       }
    }
    ```
+
+   
+> - `ModelId` specifies which OCR model to run in the OCR system.
+> - `WorkflowId` specifies which workflow to run in the OCR system.
 
 3. **Install** as Windows Service
    ```powershell
