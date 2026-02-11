@@ -1,3 +1,9 @@
+# Technical Requirements: Windows Server Folder-to-API Delivery Service
+Version: v1.0  
+Date: 2026-02-09  
+Owner: BC Government  
+Status: Draft for implementation
+
 ## Environment prerequisites
 Windows Server host(s) for deployment (and a separate dev/build machine or the same server if you must).
 
@@ -7,16 +13,9 @@ If you plan to follow Microsoft’s common Windows Service publish approach, pub
 
 ## Why Windows Service (vs Power Automate)
 
-Power Automate’s File System connector (via the On-premises Data Gateway) has trigger behaviors and limits that make “guaranteed delivery” harder to prove end-to-end without additional compensating design (durable ledger, deterministic re-scan, backlog control).[^1]
-Specifically, the connector documents that file triggers can delay returning files and don’t guarantee returning all files in a single run in some configurations, triggers don’t fire for subfolder changes, and there are throttling and size limits that can complicate burst handling and deterministic processing.[^1]
-Also, event-driven file watching (e.g., `FileSystemWatcher`) can lose track of changes if its internal buffer overflows during bursts, which is one reason this design uses periodic scanning only.[^2]
-
-
-# Technical Requirements: Windows Server Folder-to-API Delivery Service
-Version: v1.0  
-Date: 2026-02-09  
-Owner: <Your Team/Org>  
-Status: Draft for implementation
+Power Automate’s File System connector (via the On-premises Data Gateway) has trigger behaviors and limits that make “guaranteed delivery” harder to prove end-to-end without additional compensating design (durable ledger, deterministic re-scan, backlog control).
+Specifically, the connector documents that file triggers can delay returning files and don’t guarantee returning all files in a single run in some configurations, triggers don’t fire for subfolder changes, and there are throttling and size limits that can complicate burst handling and deterministic processing.
+Also, event-driven file watching (e.g., `FileSystemWatcher`) can lose track of changes if its internal buffer overflows during bursts, which is one reason this design uses periodic scanning only.
 
 ## 1. Purpose
 Build a Windows Server solution that reliably scans a folder (local NTFS path or SMB UNC share) for documents and delivers them to a remote HTTP API with guaranteed delivery (eventual delivery) semantics.
