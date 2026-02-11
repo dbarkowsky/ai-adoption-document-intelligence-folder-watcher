@@ -271,14 +271,6 @@ The project follows a user story-driven development approach. See [user_stories/
   - Comprehensive logging
   - Auto-cleanup for archives
 
-## License
-
-[Your License Here]
-
-## Contact
-
-[Your Contact Information Here]
-
 ---
 
 **Ready to get started?** Follow the [Installation Guide](deployment/DEPLOYMENT.md) for detailed deployment instructions.
