@@ -1,6 +1,6 @@
 # Folder-to-API Delivery Service
 
-A robust Windows Service that reliably delivers files from a monitored folder to a remote HTTP API with guaranteed eventual delivery semantics.
+A robust Windows Service that reliably delivers files from watched folders to the [BC Gov AI Adoption Document Intelligence](https://github.com/bcgov/ai-adoption-document-intelligence) project. This service provides guaranteed eventual delivery semantics for sending data from monitored folders to the Document Intelligence API.
 
 ## Overview
 
