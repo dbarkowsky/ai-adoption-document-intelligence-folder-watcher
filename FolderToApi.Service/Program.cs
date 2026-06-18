@@ -112,6 +112,9 @@ builder.Services.AddOptions<LoggingOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
+// Register the request-logging delegating handler
+builder.Services.AddTransient<RequestLoggingHandler>();
+
 // Configure HTTP Client Factory
 builder.Services.AddHttpClient("RemoteApi", (serviceProvider, client) =>
 {
@@ -131,6 +134,7 @@ builder.Services.AddHttpClient("RemoteApi", (serviceProvider, client) =>
     // Add user agent
     client.DefaultRequestHeaders.Add("User-Agent", "FolderToApiService/1.0");
 })
+.AddHttpMessageHandler<RequestLoggingHandler>()
 .ConfigurePrimaryHttpMessageHandler(() =>
 {
     return new SocketsHttpHandler
