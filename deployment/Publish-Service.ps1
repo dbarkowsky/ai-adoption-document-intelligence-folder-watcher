@@ -126,7 +126,7 @@ try {
     }
 
     $sdkVersion = Get-DotNetSdkVersion
-    Write-ColorOutput "✓ .NET SDK version: $sdkVersion" "Green"
+    Write-ColorOutput "[OK] .NET SDK version: $sdkVersion" "Green"
 
     # Check minimum version (10.0)
     if ($sdkVersion -lt [version]"10.0.0") {
@@ -161,7 +161,7 @@ try {
     }
 
     $ProjectPath = Resolve-Path $ProjectPath
-    Write-ColorOutput "✓ Project file: $ProjectPath" "Green"
+    Write-ColorOutput "[OK] Project file: $ProjectPath" "Green"
 
     # Resolve output path
     if (-not [System.IO.Path]::IsPathRooted($OutputPath)) {
@@ -175,7 +175,7 @@ try {
         Remove-Item -Path $OutputPath -Recurse -Force
     }
     New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
-    Write-ColorOutput "✓ Output directory: $OutputPath" "Green"
+    Write-ColorOutput "[OK] Output directory: $OutputPath" "Green"
 
     # Build publish arguments
     $publishArgs = @(
@@ -222,7 +222,7 @@ try {
         throw "Publish failed with exit code $($process.ExitCode)"
     }
 
-    Write-ColorOutput "✓ Application published successfully" "Green"
+    Write-ColorOutput "[OK] Application published successfully" "Green"
 
     # Verify output files
     Write-ColorOutput "`nVerifying published files..." "Cyan"
@@ -239,7 +239,7 @@ try {
         $sourceConfig = Join-Path $projectDir "appsettings.json"
         if (Test-Path $sourceConfig) {
             Copy-Item -Path $sourceConfig -Destination $OutputPath
-            Write-ColorOutput "✓ Configuration file copied" "Green"
+            Write-ColorOutput "[OK] Configuration file copied" "Green"
         }
         else {
             Write-ColorOutput "WARNING: Could not find appsettings.json to copy" "Yellow"
@@ -250,7 +250,7 @@ try {
     $exeSize = (Get-Item $executablePath).Length
     $exeSizeMB = [math]::Round($exeSize / 1MB, 2)
 
-    Write-ColorOutput "✓ Executable found: FolderToApi.Service.exe ($exeSizeMB MB)" "Green"
+    Write-ColorOutput "[OK] Executable found: FolderToApi.Service.exe ($exeSizeMB MB)" "Green"
 
     # List all files in output
     Write-ColorOutput "`nPublished files:" "Cyan"
@@ -270,7 +270,7 @@ try {
     Write-ColorOutput "Symbols Included:   $(if ($IncludeSymbols) { 'Yes' } else { 'No' })" "White"
     Write-ColorOutput "Executable Size:    $exeSizeMB MB" "White"
     Write-ColorOutput "Output Location:    $OutputPath" "White"
-    Write-ColorOutput "`n✓ Publish completed successfully!" "Green"
+    Write-ColorOutput "`n[OK] Publish completed successfully!" "Green"
     Write-ColorOutput "`nNext steps:" "Cyan"
     Write-ColorOutput "1. Review and update configuration files in the output directory" "White"
     Write-ColorOutput "2. Test the executable locally if possible: .\publish\FolderToApi.Service.exe" "White"
@@ -281,7 +281,7 @@ try {
 
 }
 catch {
-    Write-ColorOutput "`n✗ Publish failed: $_" "Red"
+    Write-ColorOutput "`n[FAIL] Publish failed: $_" "Red"
     Write-ColorOutput "`nStack trace:" "Red"
     Write-ColorOutput $_.ScriptStackTrace "Red"
     exit 1
