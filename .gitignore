@@ -1,2 +1,30 @@
 .specstory/
 .claude/
+
+# .NET build outputs
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+.vs/
+*.userprefs
+
+# NuGet
+*.nupkg
+*.snupkg
+project.lock.json
+packages/
+.nuget/
+
+# dotnet publish output
+**/publish/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
