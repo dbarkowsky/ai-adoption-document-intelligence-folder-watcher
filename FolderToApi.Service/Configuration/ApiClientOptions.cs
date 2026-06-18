@@ -38,9 +38,9 @@ public class ApiClientOptions
     public string ModelId { get; set; } = string.Empty;
 
     /// <summary>
-    /// Workflow identifier sent in upload payload as workflow_id.
+    /// Workflow config identifier sent in upload payload as workflow_config_id.
     /// </summary>
-    public string WorkflowId { get; set; } = string.Empty;
+    public string WorkflowConfigId { get; set; } = string.Empty;
 
     [Range(1, 300, ErrorMessage = "ConnectTimeoutSeconds must be between 1 and 300")]
     public int ConnectTimeoutSeconds { get; set; } = 10;

@@ -256,7 +256,7 @@ public class ApiClientTests : IDisposable
         root.GetProperty("original_filename").GetString().Should().Be(Path.GetFileName(tempFile));
         root.GetProperty("title").GetString().Should().Be(Path.GetFileNameWithoutExtension(tempFile));
         root.GetProperty("model_id").GetString().Should().Be("test-model");
-        root.GetProperty("workflow_id").GetString().Should().Be("test-workflow");
+        root.GetProperty("workflow_config_id").GetString().Should().Be("test-workflow");
         root.GetProperty("file_type").GetString().Should().Be("document");
         root.GetProperty("file").GetString().Should().StartWith("data:application/pdf;base64,");
         root.GetProperty("metadata").GetProperty("size").GetInt64().Should().Be(new FileInfo(tempFile).Length);
@@ -322,7 +322,7 @@ public class ApiClientTests : IDisposable
         var options = new ApiClientOptions
         {
             ModelId = "test-model",
-            WorkflowId = "test-workflow"
+            WorkflowConfigId = "test-workflow"
         };
         var mockOptions = new Mock<IOptions<ApiClientOptions>>();
         mockOptions.SetupGet(o => o.Value).Returns(options);

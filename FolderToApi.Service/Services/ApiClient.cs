@@ -57,7 +57,7 @@ public class ApiClient : IApiClient
                 model_id = _options.ModelId,
                 original_filename = fileInfo.Name,
                 title = Path.GetFileNameWithoutExtension(fileInfo.Name),
-                workflow_id = _options.WorkflowId
+                workflow_config_id = _options.WorkflowConfigId
             };
             var jsonPayload = JsonSerializer.Serialize(payload);
             using var requestContent = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
