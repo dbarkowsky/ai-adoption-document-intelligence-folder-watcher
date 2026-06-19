@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace FolderToApi.Service.Services;
 
@@ -31,18 +33,22 @@ public class RequestLoggingHandler : DelegatingHandler
             {
                 // Read and buffer so the actual send can still use the content
                 var bytes = await request.Content.ReadAsByteArrayAsync(cancellationToken);
+
+                // Capture original content headers BEFORE replacing the content object
+                var originalContentHeaders = request.Content.Headers
+                    .Select(h => (h.Key, Values: h.Value.ToList()))
+                    .ToList();
+
                 request.Content = new ByteArrayContent(bytes);
 
-                // Restore original headers (Content-Type etc.)
-                foreach (var h in request.Content.Headers)
+                // Restore original content headers (Content-Type etc.) to the new content
+                foreach (var (key, values) in originalContentHeaders)
                 {
-                    request.Content.Headers.TryAddWithoutValidation(h.Key, h.Value);
+                    request.Content.Headers.TryAddWithoutValidation(key, values);
                 }
 
-                // Only include the first 500 chars of the body to avoid flooding the log
-                body = Encoding.UTF8.GetString(bytes);
-                if (body.Length > 500)
-                    body = body[..500] + " …[truncated]";
+                // Log full JSON body with base64 file value redacted
+                body = RedactFileField(Encoding.UTF8.GetString(bytes));
             }
 
             _logger.LogDebug(
@@ -50,7 +56,7 @@ public class RequestLoggingHandler : DelegatingHandler
                 request.Method,
                 request.RequestUri,
                 headers,
-                body is null ? string.Empty : $"\nBody (first 500 chars):\n{body}");
+                body is null ? string.Empty : $"\nBody:\n{body}");
         }
 
         var response = await base.SendAsync(request, cancellationToken);
@@ -58,11 +64,25 @@ public class RequestLoggingHandler : DelegatingHandler
         if (_logger.IsEnabled(LogLevel.Debug))
         {
             var responseHeaders = BuildResponseHeaderSummary(response);
+
+            // Always log response body on errors so we can see the full backend message
+            string responseBodySection = string.Empty;
+            if (!response.IsSuccessStatusCode && response.Content is not null)
+            {
+                var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                // Re-buffer so callers can still read it
+                response.Content = new StringContent(responseBody,
+                    Encoding.UTF8,
+                    response.Content.Headers.ContentType?.MediaType ?? "application/json");
+                responseBodySection = $"\nResponse Body:\n{responseBody}";
+            }
+
             _logger.LogDebug(
-                "Incoming HTTP {StatusCode} {ReasonPhrase}\nResponse headers:\n{Headers}",
+                "Incoming HTTP {StatusCode} {ReasonPhrase}\nResponse headers:\n{Headers}{ResponseBody}",
                 (int)response.StatusCode,
                 response.ReasonPhrase,
-                responseHeaders);
+                responseHeaders,
+                responseBodySection);
         }
 
         return response;
@@ -109,6 +129,30 @@ public class RequestLoggingHandler : DelegatingHandler
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Parses the JSON body and replaces the "file" field value with a placeholder
+    /// so the full payload is visible in logs without flooding them with base64 data.
+    /// Falls back to raw truncation if the body is not valid JSON.
+    /// </summary>
+    private static string RedactFileField(string body)
+    {
+        try
+        {
+            var node = JsonNode.Parse(body);
+            if (node is JsonObject obj && obj["file"] is JsonValue fileVal)
+            {
+                var raw = fileVal.GetValue<string>();
+                obj["file"] = $"[base64 data, {raw.Length} chars]";
+            }
+            return node?.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) ?? body;
+        }
+        catch
+        {
+            // Not JSON or parse failed — fall back to truncation
+            return body.Length > 500 ? body[..500] + " …[truncated]" : body;
+        }
     }
 
     /// <summary>

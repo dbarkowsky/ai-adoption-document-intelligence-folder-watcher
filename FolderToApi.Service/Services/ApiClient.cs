@@ -43,11 +43,10 @@ public class ApiClient : IApiClient
             var fileType = GetFileType(mimeType);
             var fileBytes = await File.ReadAllBytesAsync(filePath);
             var base64File = Convert.ToBase64String(fileBytes);
-            var dataUrl = $"data:{mimeType};base64,{base64File}";
 
             var payload = new
             {
-                file = dataUrl,
+                file = base64File,
                 file_type = fileType,
                 metadata = new
                 {

@@ -258,7 +258,8 @@ public class ApiClientTests : IDisposable
         root.GetProperty("model_id").GetString().Should().Be("test-model");
         root.GetProperty("workflow_config_id").GetString().Should().Be("test-workflow");
         root.GetProperty("file_type").GetString().Should().Be("pdf");
-        root.GetProperty("file").GetString().Should().StartWith("data:application/pdf;base64,");
+        root.GetProperty("file").GetString().Should().NotBeNullOrEmpty();
+        root.GetProperty("file").GetString().Should().NotStartWith("data:");
         root.GetProperty("metadata").GetProperty("size").GetInt64().Should().Be(new FileInfo(tempFile).Length);
     }
 
