@@ -171,7 +171,11 @@ public class ApiClient : IApiClient
 
     private static string GetFileType(string mimeType)
     {
-        return mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? "image" : "document";
+        if (mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            return "image";
+        if (mimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+            return "pdf";
+        return "scan";
     }
 
     private static string GetMimeType(string extension)
